@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - users can only read and write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Trips collection - anyone can read trips, but only creators can modify
+    match /trips/{tripId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.destination is string
+        && request.resource.data.destination.size() > 0
+        && request.resource.data.destination.size() <= 200
+        && request.resource.data.createdAt is number
+        && request.resource.data.updatedAt is number;
+      allow update: if request.auth != null 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Expenses collection - anyone can read expenses, but only trip owners can modify
+    match /expenses/{expenseId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.tripId is string
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
+        && request.resource.data.description.size() <= 500
+        && request.resource.data.amount is number
+        && request.resource.data.amount >= 0
+        && request.resource.data.currency is string
+        && request.resource.data.category is string;
+      allow update: if request.auth != null 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Photos collection - anyone can read photos, but only trip owners can modify
+    match /photos/{photoId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.tripId is string
+        && request.resource.data.url is string
+        && request.resource.data.url.matches('^https://.*')
+        && request.resource.data.createdAt is number
+        && (!('caption' in request.resource.data) || request.resource.data.caption.size() <= 500);
+      allow update: if request.auth != null 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && (!('caption' in request.resource.data) || request.resource.data.caption.size() <= 500);
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+  }
+}

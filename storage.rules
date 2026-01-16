@@ -1,0 +1,40 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Trip pictures storage rules
+    match /trip-pictures/{userId}/{tripId}/{fileName} {
+      // Allow authenticated users to read trip pictures (for shared trips)
+      allow read: if request.auth != null;
+      
+      // Allow users to upload trip pictures (max 10MB)
+      allow create: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      
+      // Allow users to update their own trip pictures
+      allow update: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      
+      // Allow users to delete their own trip pictures
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Photos storage rules
+    match /photos/{userId}/{tripId}/{fileName} {
+      // Allow authenticated users to read photos (for shared trips)
+      allow read: if request.auth != null;
+      
+      // Allow users to upload photos (max 10MB)
+      allow create: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      
+      // Allow users to delete their own photos
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
